@@ -1,28 +1,9 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  
-  <url>
-    <loc>https://runby.coffee/posts/</loc>
-    <lastmod>2020-04-23T10:04:45+09:30</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://runby.coffee/</loc>
-    <lastmod>2020-04-23T10:04:45+09:30</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://runby.coffee/posts/welcome/</loc>
-    <lastmod>2020-04-23T10:04:45+09:30</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://runby.coffee/categories/</loc>
-  </url>
-  
-  <url>
-    <loc>https://runby.coffee/tags/</loc>
-  </url>
-  
-</urlset>
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"><url>
+    <loc>https://runby.coffee/posts/my-privacy-security-tools/</loc><lastmod>2020-04-23T10:40:48+09:30</lastmod></url><url>
+    <loc>https://runby.coffee/posts/</loc><lastmod>2020-04-23T10:40:48+09:30</lastmod></url><url>
+    <loc>https://runby.coffee/</loc><lastmod>2020-04-23T10:40:48+09:30</lastmod></url><url>
+    <loc>https://runby.coffee/posts/vpn-killswitch/</loc><lastmod>2020-04-23T10:39:20+09:30</lastmod></url><url>
+    <loc>https://runby.coffee/posts/welcome/</loc><lastmod>2020-04-23T10:04:45+09:30</lastmod></url><url>
+    <loc>https://runby.coffee/categories/</loc></url><url>
+    <loc>https://runby.coffee/tags/</loc></url></urlset>

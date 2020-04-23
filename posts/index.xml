@@ -1,23 +1,46 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Posts on Run By Coffee</title>
-    <link>https://runby.coffee/posts/</link>
+    <link>/posts/</link>
     <description>Recent content in Posts on Run By Coffee</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 23 Apr 2020 10:04:45 +0930</lastBuildDate>
+    <lastBuildDate>Thu, 23 Apr 2020 10:40:48 +0930</lastBuildDate>
     
-	<atom:link href="https://runby.coffee/posts/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="/posts/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
+      <title>My Privacy and Security Tools</title>
+      <link>/posts/my-privacy-security-tools/</link>
+      <pubDate>Thu, 23 Apr 2020 10:40:48 +0930</pubDate>
+      
+      <guid>/posts/my-privacy-security-tools/</guid>
+      <description>In my quest for privacy and security, I&amp;rsquo;ve made use of a great many different tools. It seemed wise to document these for others, to save time and provide options that may not have been considered before.
+ 2 Factor Auth - YubiKey has been my staple for 2FA for a long time now. Initially I started off using it just for TOTP, but have progress to FIDO2 as services have supported it.</description>
+      
+    </item>
+    
+    <item>
+      <title>VPN on pfSense with Killswitch</title>
+      <link>/posts/vpn-killswitch/</link>
+      <pubDate>Thu, 23 Apr 2020 10:39:20 +0930</pubDate>
+      
+      <guid>/posts/vpn-killswitch/</guid>
+      <description>A VPN is a great solution for privacy, and at times, a great solution for security too. Many people run VPN&amp;rsquo;s using software installed on their PC&amp;rsquo;s - this is absolutely better than nothing, but can still give room for error if the connection disconnects and the software contains no killswitch, or, the software&amp;rsquo;s killswitch doesn&amp;rsquo;t work as designed.
+Additionally, you may accidentally forget to turn your VPN on, or, if your PC is booting up, you may inadvertently leak personal information prior to the VPN turning on.</description>
+      
+    </item>
+    
+    <item>
       <title>Welcome</title>
-      <link>https://runby.coffee/posts/welcome/</link>
+      <link>/posts/welcome/</link>
       <pubDate>Thu, 23 Apr 2020 10:04:45 +0930</pubDate>
       
-      <guid>https://runby.coffee/posts/welcome/</guid>
+      <guid>/posts/welcome/</guid>
       <description>Welcome This is just a short page to test out this new feature.</description>
+      
     </item>
     
   </channel>

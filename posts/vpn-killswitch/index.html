@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en"><meta charset="utf-8"><meta name="generator" content="Hugo 0.69.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>VPN on pfSense with Killswitch&nbsp;&ndash;&nbsp;Run By Coffee</title><link rel="stylesheet" href="/css/core.min.6801212e8a5928ad2e459bd717f27eef9b3409a2d72b29f1fc0600844ab3ff155b59039ed9d219cef7bca1c1d7414170.css" integrity="sha384-aAEhLopZKK0uRZvXF/J&#43;75s0CaLXKynx/AYAhEqz/xVbWQOe2dIZzve8ocHXQUFw"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="VPN on pfSense with Killswitch" /><body>
+    <div class="base-body"><section id="header" class="site header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><span class="site name">Run By Coffee</span></a></span>
+        <span class="header right-side"></span></div></section><div id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">VPN on pfSense with Killswitch</h1><p class="article date">2020-04-23</p></section><article class="article markdown-body"><p>A VPN is a great solution for privacy, and at times, a great solution for security too. Many people run VPN&rsquo;s using software installed on their PC&rsquo;s - this is absolutely better than nothing, but can still give room for error if the connection disconnects and the software contains no killswitch, or, the software&rsquo;s killswitch doesn&rsquo;t work as designed.</p>
+<p>Additionally, you may accidentally forget to turn your VPN on, or, if your PC is booting up, you may inadvertently leak personal information prior to the VPN turning on. The solution to this is a VPN at the network level - this way, it is device-agnostic, and always on.</p>
+<p>I utilise pfSense for this, and NordVPN as my provider. This guide will cover such a setup - however, the same overall process will work with any VPN provider (it will just require some tweaks to work with your provider).</p>
+<h2 id="the-process">The Process</h2>
+<h3 id="set-up-static-ip-mappings">Set up Static IP mappings</h3>
+<p>For every machine you will have connecting through the VPN, you&rsquo;ll want to create a static address mapping in DHCP. This will ensure that the firewall rules you will create (which will apply to IP addresses) will remaing effective due to the consistency of the addresses assigned.</p>
+<p>I&rsquo;m assuming you&rsquo;re fairly familiar with the pfSense interface, but if not, go to <em>Services &gt; DHCP Server &gt; DHCP Static Mappings</em> and click the Add button. You&rsquo;ll just need the MAC address, and an IP outside of your DHCP scope.</p>
+<h3 id="create-a-firewall-alias-group">Create a Firewall Alias Group</h3>
+<p>To make rule creation simpler, we&rsquo;ll create a firewall alias, and use that for all the rules. Then, later on, adding a new device to the VPN is as simple as adding it into the firewall alias. To do this, go <em>Firewall &gt; Aliases</em>, then click <strong>Add</strong> and give it a name. In my example, I&rsquo;ve named it <strong>VPNClientsDoubleVPN</strong> so it&rsquo;s easy for me to distinguish later. Make sure to click <strong>Save</strong> when you&rsquo;re done.</p>
+<p><a target="_blank" rel="noopener noreferrer" 
+  href="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/firewall-alias.png"><img  src="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/firewall-alias.png"
+        alt="Firewall Alias"/></a></p>
+<p>If you have IPv6 enabled on your network, be mindful of needing to add those addresses too (otherwise you may have some leakage).</p>
+<h3 id="import-the-ca-cert">Import the CA Cert</h3>
+<p>Go to the <a href="https://nordvpn.com/servers/tools/"target="_blank">NordVPN Tools Page</a> and pick a server that relates to you. I&rsquo;m picking one of the DoubleVPN servers in this part. Download the OpenVPN config - generally you&rsquo;d pick the UDP one. In that file, there&rsquo;s a certificate - it&rsquo;ll start at <strong>&mdash;&ndash;BEGIN CERTIFICATE&mdash;-</strong> and go through to <strong>&mdash;-END CERTIFICATE&mdash;-</strong> - copy this, including those lines.</p>
+<p>Then, go to <em>System &gt; Certificate Manager &gt; CA&rsquo;s &gt; Add</em>. Give it a descriptive name like <strong><code>Nord_TW_HK3</code></strong>. Change the <strong>Method</strong> to <em>Import an existing Certificate Authority</em>. Then, paste your copied certificate in the <strong>Certificate Data</strong> field and click <strong>Save</strong>.</p>
+<p><a target="_blank" rel="noopener noreferrer" 
+  href="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/ca-import.png"><img  src="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/ca-import.png"
+        alt="CA Import"/></a></p>
+<h3 id="set-up-the-vpn-connection">Set up the VPN connection</h3>
+<p>At this stage, we&rsquo;ll just set up the connection to the VPN; routes and NAT etc will be done futher down.</p>
+<p>In pfSense, navigate to <em>VPN &gt; OpenVPN &gt; Clients</em>. The settings you require are below:</p>
+<table>
+<thead>
+<tr>
+<th>Setting Name</th>
+<th>Setting Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disabled</td>
+<td>Unticked</td>
+</tr>
+<tr>
+<td>Server Mode</td>
+<td>Peer to Peer (SSL/TLS)</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td>UDP on IPv4 Only (in my case, for Double VPN, this will be TCP)</td>
+</tr>
+<tr>
+<td>Device mode</td>
+<td>tun - Layer 3 tunnel mode</td>
+</tr>
+<tr>
+<td>Interface</td>
+<td>Your outgoing interface (WAN, for me)</td>
+</tr>
+<tr>
+<td>Local port</td>
+<td>Can be left blank</td>
+</tr>
+<tr>
+<td>Server host or address</td>
+<td>VPN endpoint - <strong>tw-hk3.nordvpn.com</strong> in my case</td>
+</tr>
+<tr>
+<td>Server port</td>
+<td>Generally, 1194 if UDP - for me, 443</td>
+</tr>
+<tr>
+<td>Description</td>
+<td>Something that makes sense - <strong><code>NordVPN_TW-HK3</code></strong> is what I used</td>
+</tr>
+<tr>
+<td>Username</td>
+<td>Your NordVPN user</td>
+</tr>
+<tr>
+<td>Password</td>
+<td>Your NordVPN password</td>
+</tr>
+<tr>
+<td>TLS Configuration</td>
+<td>Tick <em>Use a TLS Key</em></td>
+</tr>
+<tr>
+<td>Automatically generate a TLS key</td>
+<td>Untick this</td>
+</tr>
+<tr>
+<td>TLS Key</td>
+<td>Copy and paste the <em>OpenVPN Static Key</em> from the config file you downloaded into this field. You&rsquo;ll find it toward the end of the config file - copy from the <strong>BEGIN</strong> line to the <strong>END</strong> line inclusive.</td>
+</tr>
+<tr>
+<td>TLS Key Usage Mode</td>
+<td>TLS Authentication</td>
+</tr>
+<tr>
+<td>Peer Certificate Authority</td>
+<td>The CA cert we imported earlier - <strong><code>Nord_TW-HK3</code></strong></td>
+</tr>
+<tr>
+<td>Client Certificate</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Encryption Algorithm</td>
+<td>AES-256-GCM</td>
+</tr>
+<tr>
+<td>Enable NCP</td>
+<td>Checked</td>
+</tr>
+<tr>
+<td>NCP Algorithms</td>
+<td>AES-256-GCM and AES-256-CBC (You&rsquo;ll need to click the existing entry to remove it)</td>
+</tr>
+<tr>
+<td>Auth Digest Algorithm</td>
+<td>SHA512 (512-bit)</td>
+</tr>
+<tr>
+<td>Hardware Crypto</td>
+<td>Select one if you have a hardware crypto module</td>
+</tr>
+<tr>
+<td>Tunnel Compression</td>
+<td>No LZO Compression [Legacy style,comp-lzo no]</td>
+</tr>
+<tr>
+<td>Topology</td>
+<td>Subnet – One IP address per client in a common subnet</td>
+</tr>
+<tr>
+<td>Don&rsquo;t pull routes</td>
+<td>Tick this</td>
+</tr>
+<tr>
+<td>Custom options</td>
+<td>See block below</td>
+</tr>
+<tr>
+<td>Gateway Creation</td>
+<td>IPv4 only</td>
+</tr>
+</tbody>
+</table>
+<p>Click save.</p>
+<pre><code>tls-client;
+remote-random;
+tun-mtu 1500;
+tun-mtu-extra 32;
+mssfix 1450;
+persist-key;
+persist-tun;
+reneg-sec 0;
+remote-cert-tls server;
+</code></pre><h3 id="assign-the-interface">Assign the Interface</h3>
+<p>Go to <em>Interfaces &gt; Assignments</em>. Under <strong>Available Network Ports</strong>, click the drop down and choose your newly created VPN interface, then click <strong>Add</strong>. After that, click <strong>Save</strong>.</p>
+<p><a target="_blank" rel="noopener noreferrer" 
+  href="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/interface-add.png"><img  src="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/interface-add.png"
+        alt/></a></p>
+<p>Once done, you may wish to rename the interface from <strong>OPT1</strong> or similar to another better named interface. Just click on the interface name in the list, and change the <strong>Description</strong> - you&rsquo;ll also need to tick <strong>Enable interface</strong>. I also check <strong>Block Private Networks</strong> and <strong>Block Bogon Networks</strong>.</p>
+<p><a target="_blank" rel="noopener noreferrer" 
+  href="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/interface-config.png"><img  src="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/interface-config.png"
+        alt/></a></p>
+<p>Once saved, click <strong>Apply the changes</strong>.</p>
+<h3 id="set-up-nat">Set up NAT</h3>
+<p>We&rsquo;ll need to add some NAT rules for our traffic to get through. You may already be doing this manually, or you may have gone the lazy route and just had fully auto. I&rsquo;ve gone the combo - the &ldquo;Hybrid&rdquo; route so that the system subnets have auto created rules (so that they are auto added if any new ones are added), but I can still add my manual rules.</p>
+<p>Click to <strong>Add</strong> a new rule, then choose the Interface you just made above. Address family should be <strong>IPv4</strong>, Protocol as <strong>Any</strong>,  Soure Network will be the Internal subnet of whatever network you are NAT&rsquo;ing for - in my case, <strong>10.15.15.0/24</strong>, and Destination will be <strong>Any</strong>. Translation address will be <strong>Interface Address</strong>. Give it a description and click save.</p>
+<p><a target="_blank" rel="noopener noreferrer" 
+  href="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/outbound-nat.png"><img  src="https://cdn.runby.coffee/file/sn-blog/images/pfsense-vpn-killswitch/outbound-nat.png"
+        alt/></a></p>
+<p>Once saved, click <strong>Apply</strong>. Create one of these for each of your network ranges you wish to NAT for/use with the VPN.</p>
+<h3 id="set-up-firewall-rules">Set up Firewall Rules</h3>
+<p>We&rsquo;ll set up a our rules in Firewall &gt; Rules on your LAN interface (I&rsquo;m presuming you know how to do this if you already have a functioning pfSense). If you don&rsquo;t use secure + private DNS servers on your pfSense already, you may wish to create a rule which blocks all queries to the LAN DNS server from any client in the VPN Alias group. If you do this, make sure that your DHCP Static Mappings are set to issue your VPN&rsquo;s DNS server to these clients for direct querying.</p>
+<p>You may also wish to block all IPv6 from any client in that alias, if you don&rsquo;t already drop all IPv6 at the Firewall level (as I currently do). The main rule you&rsquo;ll want is the one that sends all traffic out the VPN. Add a rule like so:</p>
+<table>
+<thead>
+<tr>
+<th>Setting Name</th>
+<th>Setting Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Action</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>Interface</td>
+<td>Your LAN Interface</td>
+</tr>
+<tr>
+<td>Address Family</td>
+<td>IPv4</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>Source</td>
+<td>Single host or alias: Enter your Firewall Alias name here</td>
+</tr>
+<tr>
+<td>Destination</td>
+<td>Any, or, if you need to access other internal networks, create an alias of all local subnets, and invert the match to that (therefore tunneling out everything but your local networks)</td>
+</tr>
+<tr>
+<td>Advanced options</td>
+<td>Show advanced</td>
+</tr>
+<tr>
+<td>Tag</td>
+<td><code>VPN_NO_WAN_EGRESS</code> <em>(this is the tag we&rsquo;ll use to make killswitch)</em></td>
+</tr>
+<tr>
+<td>Gateway</td>
+<td>Your VPN interface</td>
+</tr>
+</tbody>
+</table>
+<p>Then click <strong>Save</strong> and <strong>Apply</strong>.</p>
+<p>Finally, add a rule to your <strong>Floating</strong> interface to block any outgoing from IP.</p>
+<table>
+<thead>
+<tr>
+<th>Setting Name</th>
+<th>Setting Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Action</td>
+<td>Block (or Reject)</td>
+</tr>
+<tr>
+<td>Quick</td>
+<td>Ticked</td>
+</tr>
+<tr>
+<td>Interface</td>
+<td>WAN (or your main outgoing)</td>
+</tr>
+<tr>
+<td>Direction</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>Address Family</td>
+<td>IPv4+IPv6</td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>Source</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>Destination</td>
+<td>Any</td>
+</tr>
+<tr>
+<td>Description</td>
+<td>Something useful</td>
+</tr>
+<tr>
+<td>Show Advanced</td>
+<td>Click it</td>
+</tr>
+<tr>
+<td>Tagged</td>
+<td><code>VPN_NO_WAN_EGRESS</code>   <em>(the tag we made earlier - this is used to match the block rule to this traffic</em>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Save</strong> and <strong>Apply</strong>. After doing this, I&rsquo;ve also found I need to Stop then Start the OpenVPN clients. <em>Status &gt; OpenVPN</em>, then click the &ldquo;Stop&rdquo; icon and then the &ldquo;Start&rdquo; icon next to <strong>Client Instance Statistics</strong>. You may also want to enable <em>Services &gt; Service Watchdog</em> to auto bring the service back up if it crashes.</p>
+<h3 id="a-note-on-dns">A Note on DNS</h3>
+<p>Your  current DNS configuration possibly (probably) leaks a lot of info about you. You may be using your ISP&rsquo;s DNS servers, or, you may be using upstream ones. However, even if you use something like Google&rsquo;s DNS, you&rsquo;re still at risk. There are particular types of DNS entries which can essentially force your DNS servers to query the website/server directly, in essence exposing your DNS servers IP addresses. In turn, this combined with your exit IP can provide a relatively unique fingerprint (more so when combined with browser fingerprint, which is again, even more unique).</p>
+<p>The solution is one of two possibilities:</p>
+<ol>
+<li>If your VPN Provider doesn&rsquo;t serve DNS internally, then you&rsquo;ll need to have a DNS server on your LAN (CoreDNS for simple configuration) which is acting as a forwarding server. This can forward to your VPN provider public DNS (preferably) or a random other DNS server, but you can tag the DNS traffic coming from that server and force it through VPN. The pfSense box will then use this internal server as its resolver, all your clients will use pfSense as their DNS server, and by extension, all clients will forward DNS through the VPN.</li>
+<li>If your provider offers private DNS on the OpenVPN interface (as does Mullvad), you simply set up the DNS server in pfsense general setup, and assign no gateway (as its direct connected). Then, in Servers &gt; DNS Resolver, set the &ldquo;Outgoing Interface&rdquo; to be your VPN interface. In this way, your pfSense directly queries the VPN providers DNS (this is the setup I&rsquo;ve used with Mullvad).</li>
+</ol>
+<h3 id="testing">Testing</h3>
+<p>Test your client - check it is accessing via VPN. Then, disable VPN - make sure the client cannot get to the net. Finally, re-enable VPN and make sure you can connect once more. Thata should be it!</p>
+</article></div><section class="article navigation"><p><a class="link" href="/posts/my-privacy-security-tools/"><span class="li">&larr;</span>My Privacy and Security Tools</a></p><p><a class="link" href="/posts/welcome/"><span class="li">&rarr;</span>Welcome</a></p></section></div><section id="footer" class="footer"><div class="footer-wrap">
+    <p class="copyright">Run By Coffee</p>
+    <p class="powerby"><span>Powered by </span><a href="https://gohugo.io" 
+        target="_blank">Hugo</a><span> and the </span><a href="https://themes.gohugo.io/hugo-notepadium/" 
+        target="_blank">Notepadium</a></p>
+</div></section></div>
+</body>
+
+</html>
